@@ -1,0 +1,21 @@
+#map { 
+	width: 400px;
+	height: 300px;
+	margin-top:5px;
+}
+
+#message {
+	width: 387px;
+	height: 60px;
+	font-size: 13px;
+	border:solid 1px black;
+	padding: 5px;
+	margin-top: 5px;
+	line-height: 19px;
+}
+#q{
+	width:330px;
+}
+.content{
+	font-size:12px;
+}

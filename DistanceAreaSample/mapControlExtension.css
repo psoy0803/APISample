@@ -1,0 +1,50 @@
+#map {
+	width:600px;
+	height:500px;
+}
+
+.measureTool {
+	width:21px;
+	height:70px;
+	background-image:url('http://10.13.228.162/button_background.png');
+	background-repeat:no-repeat;
+}
+
+.measureTool .distanceTool {
+	cursor: pointer;	
+	width:15px;
+	height:16px;
+	margin-top: 9px;
+	margin-left: 3px;
+	background-image:url('http://10.13.228.162/button_distance.png');
+}
+
+.measureTool .areaTool {
+	cursor: pointer;
+	width:15px;
+	height:15px;
+	margin-top: 5px;
+	margin-left: 3px;
+	background-image:url('http://10.13.228.162/button_area.png');
+}
+
+.measureTool .clearTool {
+	cursor: pointer;
+	width:15px;
+	height:15px;
+	margin-top: 2px;
+	margin-left: 3px;
+	background-image:url('http://10.13.228.162/button_clear.png');
+}
+
+.infw {
+	margin:7px 15px;
+	font:12px/1.5 sans-serif;
+	font-weight : bold;
+	font-family:Gulim;
+}
+.content{
+	font-size:13px;
+}
+.r_color {color: red;}
+.b_color {color: blue;}

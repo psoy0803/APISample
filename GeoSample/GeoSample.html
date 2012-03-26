@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<script type="text/javascript" src="http://apis.daum.net/maps/maps3.js?apikey=160731e72501e52a5aa710f59e33fa141c2ba9f7" charset="utf-8"></script>
+<script src="js/local.js" charset="utf-8"></script>
+<link rel="stylesheet" href="css/local.css"/>
+<script>
+var map;
+var geoService;
+var crr_position;
+
+function init() {
+
+	var p = new daum.maps.LatLng(37.537123, 127.005523);
+
+	//맵 생성
+	map = new daum.maps.Map(document.getElementById('map'), {
+		center: p
+	});
+
+	geoService = new daum.local.Geo();
+	geoService.setApiKey("de751e2e5178cef47338157266ddb6e1bc3c8f19");
+
+	var	p1 = new daum.maps.LatLng(37.537123, 127.005523);	
+	geoService.transcoord(p1, "WGS84", "KTM", "resultTranscoord");
+
+	// 맵이 드래그 됐을 때
+	daum.maps.event.addListener(map, "dragend", function(){
+			crr_position = map.getCenter();
+			geoService.Coord2Addr({"address":crr_position}, "resultCoord2Addr");
+			writePosition(crr_position);					
+	});	
+	
+}
+
+// 좌표계 변환
+function resultTranscoord(z) {
+	console.log(z);
+}
+
+// 주소-> 좌표 변환
+function getAddr2Coord() {
+	var q = document.getElementById("q").value;
+
+	geoService.addr2coord({"address":q}, "resultAddr2Coord");
+
+}
+
+function resultAddr2Coord(z) {
+	var p = new daum.maps.LatLng(z.channel.item[0].lat, z.channel.item[0].lng);
+	map.setCenter(p);
+
+	var marker = new daum.maps.Marker();
+	marker.setPosition(p);
+	marker.setMap(map);	
+}
+
+function writePosition(crr_position) {
+	document.getElementById("message").innerHTML = 
+	"위도 : " + crr_position.getLat() + "<br/>경도 : " + crr_position.getLng();
+}
+
+function resultCoord2Addr(a) {
+	document.getElementById("message").innerHTML += "<br/><b>주소 : " + a.fullName + "</b>";
+}
+</script>
+
+
+</head>
+<body onload="init();">
+<input type="text" onkeydown="javascript:if(event.keyCode == 13) { getAddr2Coord(); return false;}" id="q" value=""/>
+<button onclick="getAddr2Coord()"  style="margin-left:3px;">검색</button>
+<div id="map"></div>
+<div id="message"></div>
+<p class="content">※ 주소를 입력하고 검색을 누르면 주소의 위치가 지도위에 표시됩니다.</p>
+<p class="content">※ 지도를 드래그하면 드래그된 위치의 대한 위도,경도,주소값이 표시됩니다.</p>
+</body>
+</html>

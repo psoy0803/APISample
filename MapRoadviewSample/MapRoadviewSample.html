@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Expires" content="-1">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="No-Cache"> 
+<title>Daum 지도 API 예제</title> 
+
+<script type="text/javascript" src="http://apis.daum.net/maps/maps3.js?apikey=160731e72501e52a5aa710f59e33fa141c2ba9f7" charset="utf-8"></script>
+
+<script type="text/javascript"> 
+	
+	//맵 전역변수
+	var map;
+	//마커 전역변수
+	var marker = null;
+	//새로운 위치 전역변수
+	var crr_position=null;
+	//로드뷰 클라이언트 전역변수
+	var rc = null;
+	//로드뷰 전역변수
+	var rv = null;
+	
+	//맵 초기화
+	function init() {
+		var p = new daum.maps.LatLng(37.537123, 127.005523);
+
+		//맵 생성
+		map = new daum.maps.Map(document.getElementById('map'), {
+			center: p
+		});
+
+		//로브뷰 클라이언트 생성 - 로드뷰 데이터를 다룬다.
+		rc = new daum.maps.RoadviewClient();
+
+		//로드뷰 생성
+		rv = new daum.maps.Roadview(document.getElementById("roadview"));
+		
+		//로드뷰 보기
+		showRoadview(p);
+		
+		//마커생성
+		marker = new daum.maps.Marker({
+			position: p
+		});
+
+		//마커 붙이기
+		marker.setMap(map);
+		//마커가 드래그 가능하도록 지정
+		marker.setDraggable(true);
+
+		//맵위에 로드뷰 선 생성
+		skyview = new daum.maps.RoadviewOverlay();	
+		//맵위에 로드뷰 선 그리기
+		skyview.setMap(map);
+
+		
+		//이벤트 추가 - 마커의 드래그가 끝난 후
+		daum.maps.event.addListener(marker,"dragend",function(){
+			crr_position = marker.getPosition();
+
+			//현위치의 좌표값을 출력
+			writePosition(crr_position);
+
+			//새로운 위치에 대한 로드뷰를 생성한다. 
+			showRoadview(crr_position);			
+		});
+
+		//update된 부분
+		//이벤트 추가 - map 더블클릭 후
+		daum.maps.event.addListener(map,"click",function(e){
+			//더블클릭된 맵의 중심좌표를 crr_position으로 정의
+			crr_position = e.latLng;
+
+			//마커의 중심좌표를 새로 바뀐 맵의 좌표값 crr_position으로 바꾼다.
+			marker.setPosition(crr_position);			
+
+			//현위치의 좌표값을 출력
+			writePosition(crr_position);
+
+			//새로운 위치에 대한 로드뷰를 생성한다. 
+			showRoadview(crr_position);			
+		});
+
+		//파노라마 ID가 바뀌면 발생한다.
+		daum.maps.event.addListener(rv,"position_changed",onRoadviewPointChanged);			
+	
+	}
+
+//로드뷰 보는 함수
+function showRoadview(p){
+
+		//특정 좌표에서 반경 내 가장 가까운 로드뷰 파노라마 ID를 구한다.(좌표:p,반경:50)
+		rc.getNearestPanoId(p, 50, function(panoid) {
+			//파노라마 ID를 지정한다.
+			rv.setPanoId(panoid, p);
+		});		
+}
+
+//파노라마 ID가 바뀔 때 로드뷰에서 바뀐 좌표값 
+function onRoadviewPointChanged() {	
+
+	//로드뷰에서 바뀐 좌표값을 crr_position으로 정의
+	crr_position = rv.getPosition();
+
+	//맵의 중심좌표를 새로 바뀐 좌표값 crr_position으로 바꾼다.
+	map.setCenter(crr_position);
+
+	//마커의 중심좌표를 새로 바뀐 좌표값 crr_position으로 바꾼다.
+	marker.setPosition(crr_position);
+
+	writePosition(crr_position);
+	callAddress(crr_position);
+}
+
+//좌표값을 출력해주는 함수
+function writePosition(p) {
+	document.getElementById("message").innerHTML = 
+	"위도 : " + p.getLat() + "<br/>경도 : " + p.getLng() + 
+	"<br/>new daum.maps.LatLng("+ p.getLat() +","+ p.getLng()+") // 코딩할 때 복사해서 사용하세요.";
+}
+
+//주소 url을 부르는 함수
+function callAddress(p) {
+	
+	var url = "http://apis.daum.net/local/geo/coord2addr?apikey=de751e2e5178cef47338157266ddb6e1bc3c8f19&latitude="+ p.getLat()+ "&longitude= "+p.getLng()+"&inputCoordSystem=WGS84&output=json&callback=showAddress";			
+	doJsonpCall(url);
+}
+
+//JSON방식으로 좌표->주소 변환 함수
+function doJsonpCall(url)	{
+	var s = document.createElement('script');
+		s.type = "text/javascript";
+		s.charset ="utf-8";
+		s.src = url;
+		document.getElementsByTagName('head')[0].appendChild(s);
+}
+</script>
+
+<!--JSON방식에 의해 변환된 주소 출력-->
+<script>
+function showAddress(a) {
+		document.getElementById("message").innerHTML += "<br/><b>주소 : " + a.fullName + "</b>";
+	}
+</script>
+
+<style type="text/css">
+	#map {width:400px;height:400px;float:left;margin:2px;}
+	#roadview {width:400px;height:400px;margin:3px;}
+	#message {font-size:12px;width:790px;height:60px;border:solid 1px black;padding:6px;margin:3px;}
+	.content{font-size:12px;}
+</style>
+
+</head>
+
+<body onload="init()">
+	<div id="map"></div>
+	<div id="roadview"></div>	
+	<div id="message" class="clear"></div>
+	<p class="content">※ 로드뷰 화면을 움직이면 지도위 마커의 위치도 변하며 현 위치에 대한 위도, 경도, 주소값을 알 수 있다.</p>
+	<p class="content">※ 지도 위 마커는 움직일 수 있으며 바뀐 마커 위치에 대한 로드뷰, 위도, 경도, 주소값을 알 수 있다.</p>
+	<p class="content">※ 지도 위에서 더블클릭을 한 지점에 대한 로드뷰, 위도, 경도, 주소값을 알 수 있다.</p>
+</body>
+
+</html>
+

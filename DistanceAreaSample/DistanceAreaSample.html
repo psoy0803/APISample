@@ -1,0 +1,176 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+<title>Daum 지도 API 예제: 거리/면적 재기 </title> 
+<link rel="stylesheet" href="css/mapControlExtension.css"/>
+<script src="js/mapControlExtension.js"></script>
+<script type="text/javascript" src="http://apis.daum.net/maps/maps3.js?apikey=160731e72501e52a5aa710f59e33fa141c2ba9f7" charset="utf-8"></script>
+
+<script type="text/javascript"> 
+	var map;
+	var arr = [];	
+	var arrinfo = [];
+	var mode = 0;	
+	var counts = 0;		//클릭 횟수
+	var length;
+	var crr_position = null;
+	var line = null;
+	var polygon = null;
+	
+	// 맵 초기화
+	function init() {
+		map = new daum.maps.Map(document.getElementById('map'), {
+			center: new daum.maps.LatLng(37.48779895934866, 127.03130020103005),
+			level: 5
+		});
+
+		// 줌 컨트롤 
+		var zoomControl = new daum.maps.ZoomControl();
+		map.addControl(zoomControl, daum.maps.ControlPosition.RIGHT);
+
+		// 맵타입 컨트롤 
+		var mapTypeControl = new daum.maps.MapTypeControl();
+		map.addControl(mapTypeControl, daum.maps.ControlPosition.TOPRIGHT);
+
+		// 툴 컨트롤 		
+		measureToolControl = new createMeasureTool();	
+		map.addControl(measureToolControl, daum.maps.ControlPosition.RIGHT);
+
+		// 라인 그리기		
+		line = new daum.maps.Polyline({
+			strokeColor : "#F11413"		
+		});
+
+		// 폴리곤 그리기
+		polygon = new daum.maps.Polygon({
+			strokeWeight : 3,
+			strokeColor : "#1833e5",
+			strokeOpacity : 0.6,
+			fillColor : "#1833e5",
+			fillOpacity : 0.2
+		});
+
+		daum.maps.event.addListener(map,"mousemove",function(e){
+			setMode(mode);
+
+		});
+
+		// 이벤트 발생 - 클릭이 발생했을 때(왼쪽)
+		daum.maps.event.addListener(map,"click",function(e){	
+			counts = counts + 1;	// 클릭 횟수 counts에 저장
+			
+			if (mode == 1)
+			{
+				setMode(1);
+				// 거리구하기
+				measureDistance(e);
+
+				// 인포윈도우 생성
+				makeinfowindow(length);
+				// 생성된 인포윈도우를 arrinfo배열에 저장
+				arrinfo.push(infowindow);
+			} 
+			else if (mode == 2)
+			{				
+				// 면적구하기
+				measureArea(e);				
+			}				
+		});
+	
+		// 이벤트 발생 - 클릭이 발생했을 때(오른쪽)
+		daum.maps.event.addListener(map,"rightclick",function(e){
+			counts = counts + 1;		// 클릭 횟수 counts 저장
+			// 종료아이콘 생성
+			var icon = new daum.maps.MarkerImage(
+				'http://10.13.228.162/button_exit.png',
+				new daum.maps.Size(15, 15)
+			);	
+		
+			if (mode == 1){
+				// 거리구하기
+				measureDistance(e);	
+				// 모두 리셋
+				setMode(0);
+				// 인포윈도 : 거리				
+				makeinfowindow(length);
+				// 생성된 인포윈도우를 arrinfo배열에 저장		
+				arrinfo.push(infowindow);				
+
+				// 종료마커
+				var marker = new daum.maps.Marker({
+					position: crr_position,
+					image : icon
+				});
+				marker.setMap(map);
+				
+				// 종료버튼 누르면 초기화
+				daum.maps.event.addListener(marker, "click", function() {	
+					line.setMap(null);				// 지도 위에 그려진 선 지우기					
+					marker.setMap(null);			// 지도 위에 그려진 마커지우기
+					
+					for(i=0; i < counts; i++){
+						arrinfo[i].close();			// 지도 위에 생성된 윈도윈포지우기
+						arr.pop();					// 좌표가 저장된 arr배열 초기화	
+					}
+					for(i=0; i < counts; i++){
+						arrinfo.pop();				//인포가 저장된 arrinfo배열 초기화
+					}
+					counts =0;						// 클릭횟수 초기화					
+				});	
+			}
+
+			else if (mode == 2){
+				// 면적구하기
+				measureArea(e);				
+				// 인포윈도 : 면적
+				makeinfowindow();
+				// 모두 리셋
+				setMode(0);
+
+				// 종료마커
+				var marker = new daum.maps.Marker({
+					position: crr_position,
+					image : icon
+				});
+				marker.setMap(map);
+
+				// 종료버튼 누르면 초기화
+				daum.maps.event.addListener(marker, "click", function() {	
+					polygon.setMap(null);			// 지도 위에 그려진 폴리곤 지우기
+					marker.setMap(null);			// 지도 위에 그려진 마커지우기
+					infowindow.close();				// 지도 위에 생성된 윈도윈포 지우기
+
+					for(i=0; i < counts; i++){
+						arr.pop();					// 좌표가 저장된 arr배열 초기화
+					}
+					counts=0;						// 클릭횟수 초기화	
+				});
+			}				
+		});		
+		
+	}
+
+// mode상태에 따른 거리/면적구하기 선택 및 커서이미지
+function setMode(c) {
+		mode = c;
+		if(mode == 1) {
+			var children = document.getElementById("map").childNodes;
+			children[0].style.cursor = "url(http://i1.daumcdn.net/imap/apis/cursor/distance.cur.ico), crosshair";
+		}
+		else if(mode == 2) {
+			var children = document.getElementById("map").childNodes;
+			children[0].style.cursor = "url(http://i1.daumcdn.net/imap/apis/cursor/area.cur.ico), crosshair";
+		}
+}
+
+
+</script> 
+</head> 
+
+<body onload="init()">
+	<div id="map"></div>
+	<p class="content">※ 오른쪽 Tool을 이용하여 거리, 면적을 구할 수 있습니다.</p>
+	<p class="content">※ Tool 사용 중 오른쪽 버튼을 누르면 종료</p>
+</body> 
+</html> 
